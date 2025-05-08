@@ -1,6 +1,38 @@
 @Tutorial8_HostAddress = http://localhost:5128
 
-GET {{Tutorial8_HostAddress}}/weatherforecast/
+### 🚍 GET all trips
+GET {{Tutorial8_HostAddress}}/api/trips
 Accept: application/json
 
-###
+### 🚍 GET single trip (adjust ID if needed)
+GET {{Tutorial8_HostAddress}}/api/trips/1
+Accept: application/json
+
+### 👤 POST create a new client
+POST {{Tutorial8_HostAddress}}/api/clients
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "telephone": "123-456-789",
+  "pesel": "99010112345"
+}
+
+### 🧾 GET all trips for a client
+GET {{Tutorial8_HostAddress}}/api/clients/1/trips
+Accept: application/json
+
+### ✅ PUT register client for a trip
+PUT {{Tutorial8_HostAddress}}/api/clients/1/trips/1
+Accept: application/json
+
+### ❌ DELETE unregister client from trip
+DELETE {{Tutorial8_HostAddress}}/api/clients/1/trips/1
+Accept: application/json
+
+
+### TEST 
+GET {{Tutorial8_HostAddress}}/api/Trips/TEST
+Accept: application/json

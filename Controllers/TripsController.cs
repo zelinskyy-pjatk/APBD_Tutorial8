@@ -21,11 +21,18 @@ namespace Tutorial8.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTrip(int id)
         {
-            // if( await DoesTripExist(id)){
-            //  return NotFound();
-            // }
-            // var trip = ... GetTrip(id);
-            return Ok();
+            try
+            {
+                var trip = await _tripsService.GetTrips();
+                return Ok(trip);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Trip with ID {id} not found.");
+            }
         }
+
+        [HttpGet("TEST")]
+        public IActionResult Test() => Ok("API is running.");
     }
 }
