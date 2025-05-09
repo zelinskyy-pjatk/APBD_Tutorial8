@@ -48,7 +48,7 @@ namespace Tutorial8.Controllers
         {
             try
             {
-                await _clientsService.RegisterClientToTrip(id, tripId);
+                await _clientsService.RegisterClientForTrip(id, tripId);
                 return Ok("Client successfully registered trip.");
             }
             catch (InvalidOperationException ex)
