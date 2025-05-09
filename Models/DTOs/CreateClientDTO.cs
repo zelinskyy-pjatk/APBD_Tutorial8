@@ -25,6 +25,6 @@ public class CreateClientDTO
     public string Telephone { get; set; }           // Client's Telephone Number (optional)
     
     [Required]
-    [RegularExpression("^[0-9]{11}$")]       // Annotation [RegularExpression()] is used to apply regular expression to 
+    [RegularExpression("^[0-9]{11}$")]       // Annotation [RegularExpression()] is used to apply regular expression to PESEL Number (which contains 11 symbols)
     public string Pesel { get; set; }               // Client's Pesel Number (required)
 }

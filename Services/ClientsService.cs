@@ -17,16 +17,6 @@ public class ClientsService : IClientsService
         // -- Check if client exists -- //
         const string client_check_sql_command = "SELECT COUNT(1) FROM Client WHERE IdClient = @idClient;"; 
         
-        using (var conn = new SqlConnection(_connectionString))
-        using (var checkCmd = new SqlCommand(client_check_sql_command, conn))
-        {
-            checkCmd.Parameters.AddWithValue("@idClient", clientId);
-            var clientExists = (int) await checkCmd.ExecuteScalarAsync();
-            
-            if (clientExists == 0)
-                throw new KeyNotFoundException($"Client {clientId} does not exist.");
-        }
-        
         // -- Get all client's trips -- //
         const string sql_command = 
             """
@@ -37,31 +27,44 @@ public class ClientsService : IClientsService
                 JOIN Trip t ON ct.IdTrip = t.IdTrip
                 WHERE ct.IdClient = @idClient;
             """;
-        
+
         using (var conn = new SqlConnection(_connectionString))
-        using (var cmd = new SqlCommand(sql_command, conn))
         {
             await conn.OpenAsync();
-          
-            cmd.Parameters.AddWithValue("@idClient", clientId);
-            
-            using (var reader = await cmd.ExecuteReaderAsync())
+            using (var checkCmd = new SqlCommand(client_check_sql_command, conn))
             {
-                while (await reader.ReadAsync())
+                checkCmd.Parameters.AddWithValue("@idClient", clientId);
+                var clientExists = (int) await checkCmd.ExecuteScalarAsync();
+            
+                if (clientExists == 0)
+                    throw new KeyNotFoundException($"Client {clientId} does not exist.");
+            }
+            
+            using (var cmd = new SqlCommand(sql_command, conn))
+            {
+          
+                cmd.Parameters.AddWithValue("@idClient", clientId);
+            
+                using (var reader = await cmd.ExecuteReaderAsync())
                 {
-                    trips.Add(new ClientTripDTO()
+                    while (await reader.ReadAsync())
                     {
-                        IdClient = clientId,
-                        IdTrip = reader.GetInt32(0),
-                        TripName = reader.GetString(1),
-                        DateFrom = reader.GetDateTime(2),
-                        DateTo = reader.GetDateTime(3),
-                        RegisteredAt = reader.GetInt32(4),
-                        PaymentDate = reader.IsDBNull(5) ? null : reader.GetInt32(5)
-                    });
+                        trips.Add(new ClientTripDTO()
+                        {
+                            IdClient = clientId,
+                            IdTrip = reader.GetInt32(0),
+                            TripName = reader.GetString(1),
+                            Description = reader.GetString(2),
+                            DateFrom = reader.GetDateTime(3),
+                            DateTo = reader.GetDateTime(4),
+                            RegisteredAt = reader.GetInt32(5),
+                            PaymentDate = reader.IsDBNull(6) ? null : reader.GetInt32(6)
+                        });
+                    }
                 }
             }
         }
+        
         return trips;
     }
     

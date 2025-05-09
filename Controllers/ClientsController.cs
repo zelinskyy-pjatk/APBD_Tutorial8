@@ -11,6 +11,8 @@ namespace Tutorial8.Controllers
         private readonly IClientsService _clientsService;
         public ClientsController(IClientsService clientsService) => _clientsService = clientsService;
 
+        // GET: /api/clients/{id}/trips
+        // Gets all trips the client is registered for //
         [HttpGet("{id}/trips")]
         public async Task<IActionResult> GetTrips(int id)
         {
@@ -24,14 +26,16 @@ namespace Tutorial8.Controllers
                 return NotFound($"Client {id} was not found.");
             }
         }
-
+    
+        // POST: /api/clients
+        // Creates a new client and then returns its ID //
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateClientDTO dto)
         {
             try
             {
                 var newId = await _clientsService.CreateClient(dto);
-                return CreatedAtAction(nameof(GetTrips), new { id = newId }, new { Id = newId });
+                return Ok($"Client was successfully created with id {newId}");
             }
             catch (ArgumentException ex)
             {
@@ -42,14 +46,16 @@ namespace Tutorial8.Controllers
                 return Conflict(ex.Message);
             }
         }
-
+        
+        // PUT: /api/clients/{id}/trips/{tripId}
+        // Registers a client for a specific trip //
         [HttpPut("{id}/trips/{tripId}")]
         public async Task<IActionResult> Register(int id, int tripId)
         {
             try
             {
                 await _clientsService.RegisterClientForTrip(id, tripId);
-                return Ok("Client successfully registered trip.");
+                return Ok($"Client successfully registered for the trip {tripId}.");
             }
             catch (InvalidOperationException ex)
             {
@@ -61,6 +67,8 @@ namespace Tutorial8.Controllers
             }
         }
         
+        // DELETE: /api/clients/{id}/trips/{tripId}
+        // Unregisters a client from a specific trip // 
         [HttpDelete("{id}/trips/{tripId}")]
         public async Task<IActionResult> Unregister(int id, int tripId)
         {
