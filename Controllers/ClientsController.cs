@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Tutorial8.Models.DTOs;
 using Tutorial8.Services;
 
@@ -17,9 +16,8 @@ namespace Tutorial8.Controllers
         {
             try
             {
-                var list = await _clientsService.GetClientTrips(id);
-                if (list.Count == 0) return Ok("Client has no registered trips.");
-                return Ok(list);
+                var list = await _clientsService.GetAllClientTrips(id);
+                return list.Count == 0 ? Ok("Client has no registered trips.") : Ok(list);
             }
             catch (KeyNotFoundException)
             {

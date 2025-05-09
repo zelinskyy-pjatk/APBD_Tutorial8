@@ -32,7 +32,6 @@ Accept: application/json
 DELETE {{Tutorial8_HostAddress}}/api/clients/1/trips/1
 Accept: application/json
 
-
 ### TEST 
 GET {{Tutorial8_HostAddress}}/api/Trips/TEST
 Accept: application/json

@@ -6,35 +6,37 @@ namespace Tutorial8.Services;
 public class ClientsService : IClientsService
 {
     private readonly string _connectionString = "Data Source=localhost, 1433; User=SA; Password=yourStrong(!)Password; Initial Catalog=apbd; Integrated Security=False;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False";
-    public async Task<List<ClientTripDTO>> GetClientTrips(int clientId)
+    public async Task<List<ClientTripDTO>> GetAllClientTrips(int clientId)
     {
         var list = new List<ClientTripDTO>();
 
         const string sql_command = """
                                    SELECT t.IdTrip, t.Name,
                                           t.Description, t.DateFrom, 
-                                          t.DateTo, t.MaxPeople
-                                          FROM Trip t
+                                          t.DateTo, ct.RegisteredAt, ct.PaymentDate
+                                          FROM Client_Trip ct
+                                          JOIN Trip t ON ct.IdTrip = t.IdTrip
+                                          WHERE ct.IdClient = @clientId;
                                    """;
         
-        using (SqlConnection conn = new SqlConnection(_connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql_command, conn))
+        using (var conn = new SqlConnection(_connectionString))
+        using (var cmd = new SqlCommand(sql_command, conn))
         {
             await conn.OpenAsync();
-
+            cmd.Parameters.AddWithValue("@clientId", clientId);
             using (var reader = await cmd.ExecuteReaderAsync())
             {
                 while (await reader.ReadAsync())
                 {
-                    int idOrdinal = reader.GetOrdinal("IdTrip");
+                    var idOrdinal = reader.GetOrdinal("IdTrip");
                     list.Add(new ClientTripDTO()
                     {
                         IdTrip = reader.GetInt32(idOrdinal),
                         TripName = reader.GetString(1),
                         DateFrom = reader.GetDateTime(3),
                         DateTo = reader.GetDateTime(4),
-                        RegisteredAt = reader.GetDateTime(5),
-                        PaymentDate = reader.GetDateTime(6)
+                        RegisteredAt = reader.GetInt32(5),
+                        PaymentDate = reader.GetInt32(6)
                     });
                 }
             }
@@ -54,8 +56,8 @@ public class ClientsService : IClientsService
                                    SELECT CAST(SCOPE_IDENTITY() AS int);
                                    """;
         
-        using (SqlConnection conn = new SqlConnection(_connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql_command, conn))
+        using (var conn = new SqlConnection(_connectionString))
+        using (var cmd = new SqlCommand(sql_command, conn))
         {
             await conn.OpenAsync();
             try
@@ -64,6 +66,7 @@ public class ClientsService : IClientsService
                 cmd.Parameters.AddWithValue("@LastName", dto.LastName);
                 cmd.Parameters.AddWithValue("@Email", dto.Email);
                 cmd.Parameters.AddWithValue("@Telephone", dto.Telephone);
+                cmd.Parameters.AddWithValue("@Pesel", dto.Pesel);
                 return (int) await cmd.ExecuteScalarAsync();
             }
             catch (SqlException ex) when (ex.Number == 2627)
@@ -77,24 +80,26 @@ public class ClientsService : IClientsService
     public async Task RegisterClientToTrip(int clientId, int tripId)
     {
         const string sql = """
-                                DECLARE @c INT = (SELECT COUNT(1) FROM Client WHERE IdClient=@cid);
-                                DECLARE @t INT = (SELECT COUNT(1) FROM Trip WHERE IdTrip=@tid);
-                                DECLARE @r INT = (SELECT COUNT(1) FROM Client_Trip WHERE IdClient=@cid AND IdTrip=@tid);
-                                DECLARE @cur INT = (SELECT COUNT(1) FROM Client_Trip WHERE IdTrip=@tid);
-                                DECLARE @max INT = (SELECT MaxPeople FROM Trip WHERE IdTrip=@tid);
-                                
-                                IF @c = 0     RAISERROR('No such client',   16,1);
-                                IF @t = 0     RAISERROR('No such trip',     16,1);
-                                IF @r > 0     RAISERROR('Already registered',16,1);
-                                IF @cur >= @max RAISERROR('Trip full',      16,1);
-                                
-                                INSERT INTO Client_Trip(IdClient,IdTrip,RegisteredAt,PaymentDate)
-                                VALUES(@cid,@tid,GETDATE(),GETDATE());
+                           IF NOT EXISTS (SELECT 1 FROM Client WHERE IdClient = @cid)
+                           RAISERROR('Client not found', 16, 1);
+                           
+                           IF NOT EXISTS (SELECT 1 FROM Trip WHERE IdTrip = @tid)
+                               RAISERROR('Trip not found', 16, 1);
+                           
+                           IF EXISTS (SELECT 1 FROM Client_Trip WHERE IdClient = @cid AND IdTrip = @tid)
+                               RAISERROR('Already registered', 16, 1);
+                           
+                           IF (SELECT COUNT(*) FROM Client_Trip WHERE IdTrip = @tid) >= 
+                              (SELECT MaxPeople FROM Trip WHERE IdTrip = @tid)
+                               RAISERROR('Trip is full', 16, 1);
+                           
+                           INSERT INTO Client_Trip (IdClient, IdTrip, RegisteredAt, PaymentDate)
+                           VALUES (@cid, @tid, CONVERT(INT, CONVERT(VARCHAR(8), GETDATE(), 112)), CONVERT(INT, CONVERT(VARCHAR(8), GETDATE(), 112)));
                                 
                            """;
 
-        using (SqlConnection conn = new SqlConnection(_connectionString))
-        using (SqlCommand cmd = new SqlCommand(sql, conn))
+        using (var conn = new SqlConnection(_connectionString))
+        using (var cmd = new SqlCommand(sql, conn))
         {
             await conn.OpenAsync();
             try
@@ -120,8 +125,8 @@ public class ClientsService : IClientsService
                      DELETE FROM Client_Trip
                      WHERE IdClient = @cid AND IdTrip = @tid;";
         
-        using (SqlConnection conn = new SqlConnection(_connectionString))
-        using (SqlCommand check_cmd = new SqlCommand(check, conn))
+        using (var conn = new SqlConnection(_connectionString))
+        using (var check_cmd = new SqlCommand(check, conn))
         {
             await conn.OpenAsync();
             check_cmd.Parameters.AddWithValue("@cid", clientId);
@@ -130,8 +135,8 @@ public class ClientsService : IClientsService
             if (!exists) throw new KeyNotFoundException($"Registration not found.");
         }
 
-        await using (SqlConnection conn = new SqlConnection(_connectionString))
-        await using (SqlCommand cmd = new SqlCommand(delete_sql_command, conn))
+        await using (var conn = new SqlConnection(_connectionString))
+        await using (var cmd = new SqlCommand(delete_sql_command, conn))
         {
             await conn.OpenAsync();
             cmd.Parameters.AddWithValue("@cid", clientId);
